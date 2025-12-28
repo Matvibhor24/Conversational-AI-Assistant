@@ -7,6 +7,8 @@ from app.agentic.planner import TaskPlanner
 from app.agentic.executor import ToolExecutor
 from app.agentic.verifier import AnswerSynthesizer
 from app.utils.logging import log_event
+from app.memory.store import add_turn, get_session
+from app.memory.manager import update_memory
 
 
 class Orchestrator:
@@ -14,11 +16,19 @@ class Orchestrator:
     High level controller for a single user request.
     """
 
-    def handle(self, user_message: str, request_id: str) -> RoutedResponse:
+    def handle(
+        self, user_message: str, request_id: str, session_id: str
+    ) -> RoutedResponse:
+        session = get_session(session_id)
+        memory_context = session.summary
         log_event(
-            "request_received", {"message_preview": user_message[:100]}, request_id
+            "request_received",
+            {"message_preview": user_message[:100]},
+            request_id,
         )
-        understanding = UnderstandingEngine().analyze(user_message)
+        understanding = UnderstandingEngine().analyze(
+            user_message=user_message, memory_context=memory_context
+        )
 
         log_event(
             "understanding_complete",
@@ -35,12 +45,16 @@ class Orchestrator:
         log_event("route_selected", {"mode": route.mode}, request_id)
 
         if route.mode == "clarification":
+            add_turn(session_id, "assistant", route.message)
             log_event("response_type", {"type": "clarification"}, request_id)
             return route.message
         if route.mode == "direct":
             response = DirectResponder().respond(
                 user_message=user_message, understanding=understanding
             )
+            add_turn(session_id, "user", user_message)
+            add_turn(session_id, "assistant", response)
+            update_memory(session_id)
             log_event("response_type", {"type": "direct"}, request_id)
             return response
 

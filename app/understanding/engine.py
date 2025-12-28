@@ -11,8 +11,15 @@ class UnderstandingEngine:
     Produces metadata, not answers.
     """
 
-    def analyze(self, user_message: str) -> Understanding:
-        prompt = UNDERSTANDING_PROMPT_TEMPLATE.format(user_message=user_message)
+    def analyze(
+        self, user_message: str, memory_context: str | None = None
+    ) -> Understanding:
+        context_block = (
+            f'\nConversation summary: \n"{memory_context}"' if memory_context else ""
+        )
+        prompt = UNDERSTANDING_PROMPT_TEMPLATE.format(
+            user_message=user_message + context_block
+        )
 
         raw_output = call_llm(model=OPENAI_MODEL, prompt=prompt, temperature=0.0)
 

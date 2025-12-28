@@ -10,6 +10,10 @@ router = APIRouter()
 def chat(request: ChatRequest):
     request_id = str(uuid4())
 
-    answer = Orchestrator().handle(user_message=request.message, request_id=request_id)
+    answer = Orchestrator().handle(
+        user_message=request.message,
+        request_id=request_id,
+        session_id=request.session_id,
+    )
 
     return ChatResponse(request_id=request_id, answer=answer)
