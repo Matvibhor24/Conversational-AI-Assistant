@@ -4,22 +4,28 @@ from app.schemas.response import RoutedResponse
 
 class ModeRouter:
     """
-    Decides how the system should respond based on understanding metadata.
+    Maps understanding to high-level execution nodes.
     """
 
     def route(self, understanding: Understanding) -> RoutedResponse:
-        # Rule1: Ambiguity -> clarification
+        # 1: Ambiguity -> clarification
         if understanding.clarity == "ambiguous":
             return RoutedResponse(
                 mode="clarification", message=understanding.clarification_question
             )
-        # Rule2: Required tools -> deep reasoning
-        if understanding.tool_requirements == "required":
-            return RoutedResponse(mode="deep")
+
+        # 2. Simple + no attachment + no tools → direct
+        if (
+            understanding.reasoning_complexity == "simple"
+            and understanding.attachment_use == "ignore"
+            and understanding.tool_requirements == "none"
+        ):
+            return RoutedResponse(mode="direct")
 
         # Rule3: Deep response requested -> deep reasoning
-        if understanding.response_depth == "deep":
-            return RoutedResponse(mode="deep")
+        # if understanding.response_depth == "deep":
+        #     return RoutedResponse(mode="deep")
 
-        # Rule4: Default -> direct response
-        return RoutedResponse(mode="direct")
+        # # Rule4: Default -> direct response
+        # return RoutedResponse(mode="direct")
+        return RoutedResponse(mode="deep")

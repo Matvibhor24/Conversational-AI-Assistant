@@ -1,25 +1,38 @@
 UNDERSTANDING_PROMPT_TEMPLATE = """
-You are an understanding engine for a general purpose AI assistant.
+You are an intent understanding engine for a general purpose conversational AI assistant.
 
-Your task is to understand the user's request.
-You must not answer the user.
+Your task is to understand the user's message.
+You MUST NOT answer the user.
 
 User message:
 "{user_message}"
 
+Attachments available:
+{attachments}
+
 Return ONLY valid JSON in this exact schema:
 
 {{
-    "user_goal": "<string>",
     "clarity": "clear | ambiguous",
     "clarification_question": "<string or null>",
+    "attachment_use": "use | ignore",
+    "attachment_scope": "none | global | local",
     "response_depth": "short | medium | deep",
+    "reasoning_complexity": "simple | multi_step | research",
     "tool_requirements": "none | optional | required",
     "confidence": <decimal between 0 and 1>
 }}
 
 Rules:
-- If the request refers to something unspecified (eg. "this", "that", "it"), mark clarity as "ambiguous".
+- If the question can be answered without the attachment, set attachment_usage to "ignore".
+- If attachment_use is "ignore", attachment_scope MUST BE "none".
+- Use "global" attachment scope for summaries, overviews, rewrites.
+- Use "local" attachment scope for finding specific information.
+- Use reasoning_complexity:
+    - "simple" for single-step answers
+    - "multi_step" for structured reasoning and planning and tool calling
+    - "research" for extensive investigation
+- Mark clarity as "ambiguous" ONLY if essential information is missing.
 - If ambiguous, propose ONE short clarification question.
 - Choose response_depth based on how much explanation is appropriate.
 - Set tool_requirements to "required" ONLY if tools or external context are necessary.

@@ -1,5 +1,5 @@
 from pydantic import BaseModel
-from typing import List, Literal
+from typing import List, Literal, Optional
 
 
 class Turn(BaseModel):
@@ -11,3 +11,4 @@ class SessionMemory(BaseModel):
     session_id: str
     turns: List[Turn]
     summary: str | None = None
+    document_ids: Optional[str] = None

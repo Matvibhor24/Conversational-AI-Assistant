@@ -1,3 +1,4 @@
+from ast import boolop
 from app.schemas import understanding
 from app.understanding.engine import UnderstandingEngine
 from app.core.router import ModeRouter
@@ -17,17 +18,28 @@ class Orchestrator:
     """
 
     def handle(
-        self, user_message: str, request_id: str, session_id: str
+        self,
+        user_message: str,
+        request_id: str,
+        session_id: str,
+        file_attached_in_request: bool,
     ) -> RoutedResponse:
+        attachments = []
         session = get_session(session_id)
         memory_context = session.summary
+        if file_attached_in_request:
+            attachments.append("File attached")
+        elif session.document_ids:
+            attachments.append("document available from earlier in conversation")
         log_event(
             "request_received",
             {"message_preview": user_message[:100]},
             request_id,
         )
         understanding = UnderstandingEngine().analyze(
-            user_message=user_message, memory_context=memory_context
+            user_message=user_message,
+            memory_context=memory_context,
+            attachments=attachments,
         )
 
         log_event(
@@ -59,17 +71,44 @@ class Orchestrator:
             return response
 
         if route.mode == "deep":
-            tasks = TaskPlanner().plan(user_message)
-            log_event(
-                "deep_tasks_planned",
-                {"task_count": len(tasks), "tools": [t.tool for t in tasks]},
-                request_id,
-            )
-            results = ToolExecutor().execute(tasks, user_message)
-            response = AnswerSynthesizer().synthesize(user_message, results)
+            # ---- DOCUMENT-BASED PATHS ----
+            if understanding.attachment_use == "use":
 
-            log_event("response_type", {"type": "deep"}, request_id)
+                # Global document reasoning → STEP 8.1
+                if understanding.attachment_scope == "global":
+                    response = AnswerSynthesizer().from_document_summary(
+                        user_message=user_message, session_id=session_id
+                    )
+                    add_turn(session_id, "assistant", response)
+                    return response
 
-            return response
+                # Local document reasoning → STEP 8.2 (later)
+                if understanding.attachment_scope == "local":
+                    return "Local document reasoning not implemented yet."
 
-        return "Deep reasoning path not implemented yet."
+            if (
+                understanding.reasoning_complexity in ("multi_step", "research")
+                or understanding.tool_requirements == "required"
+            ):
+
+                tasks = TaskPlanner().plan(user_message)
+                results = ToolExecutor().execute(tasks, user_message)
+                response = AnswerSynthesizer().synthesize(user_message, results)
+
+                add_turn(session_id, "assistant", response)
+                return response
+
+        #     tasks = TaskPlanner().plan(user_message)
+        #     log_event(
+        #         "deep_tasks_planned",
+        #         {"task_count": len(tasks), "tools": [t.tool for t in tasks]},
+        #         request_id,
+        #     )
+        #     results = ToolExecutor().execute(tasks, user_message)
+        #     response = AnswerSynthesizer().synthesize(user_message, results)
+
+        #     log_event("response_type", {"type": "deep"}, request_id)
+
+        #     return response
+
+        # return "Deep reasoning path not implemented yet."
