@@ -4,6 +4,8 @@ You are a helpful, conversational AI assistant.
 User Question:
 "{user_message}"
 
+{conversation_context}
+
 Respond in a {response_depth} manner.
 
 Guidelines:

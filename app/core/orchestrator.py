@@ -10,6 +10,7 @@ from app.agentic.verifier import AnswerSynthesizer
 from app.utils.logging import log_event
 from app.memory.store import add_turn, get_session
 from app.memory.manager import update_memory
+from app.memory.manager import get_conversation_context
 
 
 class Orchestrator:
@@ -26,7 +27,22 @@ class Orchestrator:
     ) -> RoutedResponse:
         attachments = []
         session = get_session(session_id)
-        memory_context = session.summary
+        conversation_context = get_conversation_context(session_id)
+        # Log conversation context for debugging (truncate if too long)
+        context_preview = (
+            conversation_context[:500] + "..."
+            if len(conversation_context) > 500
+            else conversation_context or "(empty)"
+        )
+        log_event(
+            "conversation_context",
+            {
+                "context_preview": context_preview,
+                "has_summary": bool(session.summary),
+                "turn_count": len(session.turns),
+            },
+            request_id,
+        )
         if file_attached_in_request:
             attachments.append("File attached")
         elif session.document_ids:
@@ -38,7 +54,7 @@ class Orchestrator:
         )
         understanding = UnderstandingEngine().analyze(
             user_message=user_message,
-            memory_context=memory_context,
+            conversation_context=conversation_context,
             attachments=attachments,
         )
 
@@ -48,6 +64,8 @@ class Orchestrator:
                 "clarity": understanding.clarity,
                 "response_depth": understanding.response_depth,
                 "tool_requirements": understanding.tool_requirements,
+                "attachment_use": understanding.attachment_use,
+                "attachment_scope": understanding.attachment_scope,
                 "confidence": understanding.confidence,
             },
             request_id,
@@ -62,7 +80,9 @@ class Orchestrator:
             return route.message
         if route.mode == "direct":
             response = DirectResponder().respond(
-                user_message=user_message, understanding=understanding
+                user_message=user_message,
+                understanding=understanding,
+                conversation_context=conversation_context,
             )
             add_turn(session_id, "user", user_message)
             add_turn(session_id, "assistant", response)
@@ -72,12 +92,14 @@ class Orchestrator:
 
         if route.mode == "deep":
             # ---- DOCUMENT-BASED PATHS ----
-            if understanding.attachment_use == "use":
+            if understanding.attachment_use == "use" and session.document_ids:
 
                 # Global document reasoning → STEP 8.1
                 if understanding.attachment_scope == "global":
                     response = AnswerSynthesizer().from_document_summary(
-                        user_message=user_message, session_id=session_id
+                        user_message=user_message,
+                        session_id=session_id,
+                        conversation_context=conversation_context,
                     )
                     add_turn(session_id, "assistant", response)
                     return response

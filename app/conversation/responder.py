@@ -9,9 +9,13 @@ class DirectResponder:
     Handles cheap, conversational responses.
     """
 
-    def respond(self, user_message: str, understanding: Understanding) -> str:
+    def respond(
+        self, user_message: str, understanding: Understanding, conversation_context: str
+    ) -> str:
         prompt = DIRECT_RESPONSE_PROMPT.format(
-            user_message=user_message, response_depth=understanding.response_depth
+            user_message=user_message,
+            conversation_context=conversation_context,
+            response_depth=understanding.response_depth,
         )
 
         response = call_llm(model=OPENAI_MODEL, prompt=prompt, temperature=0.3)

@@ -14,17 +14,16 @@ class UnderstandingEngine:
     def analyze(
         self,
         user_message: str,
-        memory_context: str | None = None,
+        conversation_context: str | None = None,
         attachments: list[str] | None = None,
     ) -> Understanding:
         attachment_text = (
             "\n".join(f"- {a}" for a in attachments) if attachments else "None"
         )
-        context_block = (
-            f'\nConversation summary: \n"{memory_context}"' if memory_context else ""
-        )
         prompt = UNDERSTANDING_PROMPT_TEMPLATE.format(
-            user_message=user_message + context_block, attachments=attachment_text
+            user_message=user_message,
+            conversation_context=conversation_context or "None",
+            attachments=attachment_text,
         )
 
         raw_output = call_llm(model=OPENAI_MODEL, prompt=prompt, temperature=0.0)

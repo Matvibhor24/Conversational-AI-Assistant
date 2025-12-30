@@ -7,6 +7,9 @@ You MUST NOT answer the user.
 User message:
 "{user_message}"
 
+Conversation context (summary + recent turns):
+{conversation_context}
+
 Attachments available:
 {attachments}
 
@@ -18,7 +21,7 @@ Return ONLY valid JSON in this exact schema:
     "attachment_use": "use | ignore",
     "attachment_scope": "none | global | local",
     "response_depth": "short | medium | deep",
-    "reasoning_complexity": "simple | multi_step | research",
+    "reasoning_complexity": "simple | multi-step | research",
     "tool_requirements": "none | optional | required",
     "confidence": <decimal between 0 and 1>
 }}
@@ -26,11 +29,12 @@ Return ONLY valid JSON in this exact schema:
 Rules:
 - If the question can be answered without the attachment, set attachment_usage to "ignore".
 - If attachment_use is "ignore", attachment_scope MUST BE "none".
+- Set attachment_use to "use" ONLY IF there are attachments available.
 - Use "global" attachment scope for summaries, overviews, rewrites.
 - Use "local" attachment scope for finding specific information.
 - Use reasoning_complexity:
     - "simple" for single-step answers
-    - "multi_step" for structured reasoning and planning and tool calling
+    - "multi-step" for structured reasoning and planning and tool calling
     - "research" for extensive investigation
 - Mark clarity as "ambiguous" ONLY if essential information is missing.
 - If ambiguous, propose ONE short clarification question.
