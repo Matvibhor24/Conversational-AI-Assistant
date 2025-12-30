@@ -5,6 +5,7 @@ from app.core.orchestrator import Orchestrator
 from app.memory.store import get_session
 from app.memory.manager import get_conversation_context
 from app.ingestion.router import ingest_file
+from app.utils.token_counter import estimate_tokens
 
 router = APIRouter()
 
@@ -45,10 +46,17 @@ def debug_session(session_id: str):
     session = get_session(session_id)
     conversation_context = get_conversation_context(session_id)
 
+    # Calculate token counts
+    total_turn_tokens = sum(estimate_tokens(turn.content) for turn in session.turns)
+    context_tokens = estimate_tokens(conversation_context)
+    summary_tokens = estimate_tokens(session.summary) if session.summary else 0
+
     return {
         "session_id": session_id,
         "summary": session.summary,
+        "summary_tokens": summary_tokens,
         "turn_count": len(session.turns),
+        "total_turn_tokens": total_turn_tokens,
         "turns": [
             {
                 "role": turn.role,
@@ -57,10 +65,12 @@ def debug_session(session_id: str):
                     if len(turn.content) > 200
                     else turn.content
                 ),
+                "tokens": estimate_tokens(turn.content),
             }
             for turn in session.turns
         ],
         "document_ids": session.document_ids,
         "conversation_context": conversation_context,
         "conversation_context_length": len(conversation_context),
+        "conversation_context_tokens": context_tokens,
     }

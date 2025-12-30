@@ -1,6 +1,5 @@
 from typing import Literal
 from pydantic import BaseModel
-from typing import List, Literal
 
 
 class ReasoningTask(BaseModel):

@@ -28,7 +28,7 @@ class Orchestrator:
         attachments = []
         session = get_session(session_id)
         conversation_context = get_conversation_context(session_id)
-        # Log conversation context for debugging (truncate if too long)
+
         context_preview = (
             conversation_context[:500] + "..."
             if len(conversation_context) > 500

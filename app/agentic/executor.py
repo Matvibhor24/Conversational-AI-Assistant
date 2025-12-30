@@ -1,4 +1,4 @@
-from app.agentic.schemas import ReasoningTask
+from app.schemas.agentic import ReasoningTask
 from app.tools.summarizer import summarize_text
 
 

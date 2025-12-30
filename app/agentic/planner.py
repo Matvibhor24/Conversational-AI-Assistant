@@ -1,5 +1,5 @@
 import json
-from app.agentic.schemas import ReasoningTask
+from app.schemas.agentic import ReasoningTask
 from app.agentic.prompt import TASK_DECOMPOSITION_PROMPT
 from app.tools.llm import call_llm
 from app.config.constants import GEMINI_MODEL, OPENAI_MODEL
